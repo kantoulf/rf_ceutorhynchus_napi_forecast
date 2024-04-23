@@ -11,14 +11,6 @@ data <- read.csv(file = "data/import/bsv/bsv_complet_2011_2022.csv") %>%
 
 # Main code ---------------------------------------------------------------
 
-# Recodage des id_plots utilises plus d'une fois.
-# exemple id_plot 2347 utilise pour un champ en 2009 et 2010.
-# on veut un idplot pour un champ-annee uniquement.
-
-# On cherche les idplot pour lesquels il y a plusieurs annees.
-# Dans certains cas, c'est normal car le suivi commence en decembre et continue au printemps.
-# Critere pour savoir s'il faut recoder : s'il y a plus de 2 annees differentes pour un id_plot
-
 double <- data %>%
   group_by(Id_plot) %>%
   summarise(
@@ -35,7 +27,6 @@ toRecode <- double %>%
   filter(diff > 1) %>%
   pull(Id_plot)
 
-# On ne recode que si c'est necessaire
 if(length(toRecode > 0)){
   
   test <- bsv %>%
@@ -66,9 +57,6 @@ if(length(toRecode > 0)){
 
 # Suppression Id_plot obervés 1 fois --------------------------------------
 
-# On estime que les parcelles ou un seul releve a ete effectuee ne sont pas dignes de confiance.
-# On les retire du jeu de donnees.
-
 to_remove <- data %>% 
   group_by(Id_plot) %>% 
   summarise(N = n()) %>% 
@@ -81,21 +69,8 @@ data <- data %>%
 
 # Imputation des Valeurs = 0 ----------------------------------------------
 
-# On veut un tableau avec des captures chaque semaine.
-# Si deux releves consecutifs sont separes par plus de 1 semaine, et qu'il n'y a pas de captures dans le second,
-# On peut inferer qu'il n y a pas eu de captures entre.
-# Exemple
-# semaine 7 : 3 charançons
-# semaine 8 : NA
-# semaine 9 : 0 charançons (= somme des captures sur semaine 8 et 9)
-# => on est surs qu'il n y a pas eu de captures en semaine 8, donc on impute comme suit :
-# semaine 7 : 3 charançons
-# semaine 8 : 0 charançons
-# semaine 9 : 0 charançons
-
 data_imp <- tibble()
 
-# Code de Celia
 for (id in unique(data$Id_plot)){
   
   t <- seq(
@@ -138,16 +113,6 @@ for (id in unique(data$Id_plot)){
 }
 
 # Suppression si Valeur positive suivant semaine manquante ----------------
-
-# Exemple :
-#
-# semaine 7 : 3 charançons
-# semaine 8 : NA
-# semaine 9 : 15 charançons (= somme des captures sur semaine 8 et 9)
-#
-# => on ne sait pas si les charançons ont etes captures en semaine 8 ou 9
-# => trop imprecis, donc on supprime ces parcelles
-# Un peu brutal, on aurait pu virer les observations problematiques plutot que les parcelles entieres
 
 parc_na <- data_imp %>% 
   filter(is.na(Valeur)) %>% 

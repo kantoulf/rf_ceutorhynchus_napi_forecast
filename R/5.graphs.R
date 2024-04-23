@@ -25,7 +25,7 @@
   bsv_etendu <- readRDS("data/export/rds/bsv_etendu_mai2022.rds") %>% 
     arrange(Id_plot, Date_obs)
   
-  # bsv_etendu_minimal <- readRDS("data/bsv_etendu_minimal_jourLatLong.rds")
+  bsv_etendu_minimal <- readRDS("data/bsv_etendu_minimal_jourLatLong.rds")
   
   data_ranger <- bsv %>% 
     arrange(Id_plot, Date_obs) %>% 
@@ -36,14 +36,7 @@
   
   rfe <- readRDS("data/export/rds/rfeProfile.rds")
   
-  # fondCarte <- read_sf("D:/Mes Donnees/OneDrive - Cirad/Terres_inovia/DEPARTEMENTS/DEPARTEMENT.shp") %>% 
-  #   st_transform(4326) %>%
-  #   filter(!grepl("CORSE", NOM_DEPT)) %>% 
-  #   ms_simplify(keep = 0.02) %>% 
-  #   arrange(CODE_DEPT)
-  
   fondCarte <- read_sf("/media/legros/Donnees/OneDrive_linux/Terres_inovia/DEPARTEMENTS/DEPARTEMENT.shp") %>%
-    # fondCarte <- read_sf("/home/legros/OneDrive/Terres_inovia/DEPARTEMENTS/DEPARTEMENT.shp") %>%
     st_transform(4326) %>%
     filter(!grepl("CORSE", NOM_DEPT)) %>% 
     arrange(CODE_DEPT)
@@ -69,7 +62,6 @@ fig1 <- ggplot()+
     aes(
       x = Longitude2, 
       y = Latitude2
-      # color = factor(Campagne)
     ),
     shape = 3,
     color = "black",
@@ -110,7 +102,7 @@ fig1
 }
 
 
-# Figure 2 (variables par ordre d'importance) -----------------------------
+# Figure 3 (variables par ordre d'importance) -----------------------------
 
 rf_replicate <- replicate(
   20, 
@@ -287,7 +279,7 @@ print(fig2)
 dev.off()
 
 
-# Figure 3 (variables min) ------------------------------------------------
+# Figure 4 (variables min) ------------------------------------------------
 
 rf_replicate_min <- replicate(
   20, 
@@ -399,7 +391,7 @@ print(fig3)
 dev.off()
 
 
-# Figure 4 (ALE plots) ----------------------------------------------------
+# Figure 5 (ALE plots) ----------------------------------------------------
 
 rf_min <- ranger(
   Capture ~ ., 
@@ -616,7 +608,7 @@ ggsave(
   units = "in"
 )
 
-# Figure 5 (AUC plot) -----------------------------------------------------
+# Figure 6 (AUC plot) -----------------------------------------------------
 
 row_data_min <- f_vc_ROC(data_ranger_minimal)
 
@@ -829,7 +821,7 @@ best_threshold_min <- coords(
 }
 
 
-# Figure 6 (carte AUC) ----------------------------------------------------
+# Figure 7 (carte AUC) ----------------------------------------------------
 
 predata_fig6 <- bsv %>% 
   select(
@@ -974,87 +966,10 @@ ggsave(
   units = "in"
 )
 
-# Corplot des 100 variables RFE -------------------------------------------
-
-data_figx <- bsv %>% 
-  select(all_of(rfe$optVariables))
-
-ggplot()+
-  geom_sf(data = data_fig6_test, aes(fill = AUC))+
-  scale_fill_gradientn(
-    colors = c("#c77558", "#dfcc48", "#55977a"),
-    # breaks = seq(0.5, 1, 0.1),
-    # limits = c(0.5, 1)
-  )+
-  labs(
-    x = "",
-    y = "",
-    fill = "Mean AUC"
-  )+
-  geom_text(
-    data = data_text, 
-    inherit.aes = FALSE, 
-    aes(
-      x = centroid_long, 
-      y = centroid_lat,
-      label = AUC,
-      fontface = 2
-    )
-  )+
-  theme(
-    legend.title = element_text(
-      face = "bold"
-    )
-  )
-
-matrix <- cor(data_figx)
-corrplot(
-  matrix,
-  type = "upper",
-  tl.cex = 0.5
-)
-summary(matrix)
-
-flatten <- f_flattenCorrMatrix(matrix, 0.75)
-
-matrix_min <- cor(data_ranger_minimal %>% select(-Campagne, -Capture))
-flatten_min <- f_flattenCorrMatrix(matrix_min, 0.75)
-corrplot(
-  matrix_min,
-  type = "upper",
-  tl.cex = 1
-)
-
-# Figure sup 1 ------------------------------------------------------------
+# Figure 2 ------------------------------------------------------------
 
 data_fig6_bis <- data_fig6_test %>% 
   left_join(n_obs, by = "CODE_DEPT")
-
-plot(AUC ~ N_idplots, data = data_fig6_bis)
-
-AUC_nidplots <- ggplot(data_fig6_bis, aes(x = N_idplots, y = AUC))+
-  geom_point()+
-  geom_smooth(method = "lm", formula = y ~ x, colour = "blue")+
-  labs(
-    x = "Number of unique fields per French department",
-    y = "Mean AUC\n"
-  )+
-  scale_y_continuous(breaks = seq(0.55, 0.85, 0.1))+
-  theme(
-    plot.margin = margin(20, 20, 20, 20),
-    axis.text.x = element_text(size = 12),
-    axis.text.y = element_text(size = 12),
-    axis.title.x = element_text(margin = margin(10, 0, 0, 0), size = 14),
-    axis.title.y = element_text(margin = margin(0, 10, 0, 0), size = 14)
-  )
-
-ggsave(
-  filename = "/media/legros/Donnees/OneDrive_linux/Articles/Modele_vol/Review/Figures_pdf/figsup_SI2.pdf", 
-  plot = AUC_nidplots,
-  height = 9,
-  width = 9,
-  units = "in"
-)
 
 data_fig6_bis2 <- bsv %>% 
   left_join(predata_fig6, by = "Id_plot") %>% 
@@ -1095,15 +1010,6 @@ hist <- ggplot(data_fig6_bis, aes(x = ratio_pres))+
     axis.line = element_line()
   )
 
-hist
-
-ggsave(
-  filename = "/media/legros/Donnees/OneDrive_linux/Articles/Modele_vol/Figures_pdf/figsup_hist.pdf", 
-  plot = hist,
-  height = 9,
-  width = 9,
-  units = "in"
-)
 
 data_text_freq <- data_fig6_bis %>% 
   mutate(
@@ -1147,19 +1053,8 @@ carte_f <- ggplot()+
     axis.ticks = element_blank()
   )
 
-carte_f
-
-ggsave(
-  filename = "/media/legros/Donnees/OneDrive_linux/Articles/Modele_vol/Figures_pdf/figsup_carte.pdf", 
-  plot = carte_f,
-  height = 9,
-  width = 9,
-  units = "in"
-)
 
 both <- grid.arrange(carte_f, hist, nrow = 1)
-
-both
 
 ggsave(
   filename = "/media/legros/Donnees/OneDrive_linux/Articles/Modele_vol/Review/Figures_pdf/Figure_2.pdf", 
@@ -1169,14 +1064,10 @@ ggsave(
   units = "in"
 )
 
+
+# Figure 8 ----------------------------------------------------------------
+
 m <- lm(AUC ~ poly(ratio_pres, 2) + N_idplots, data = data_fig6_bis %>% ungroup() %>% drop_na())
-
-summary(m)
-
-sink(file = "lm.txt")
-print(summary(m))
-sink()
-
 
 dplot <- data_fig6_bis %>% 
   ungroup() %>% 
@@ -1209,110 +1100,8 @@ ggsave(
   units = "in"
 )
 
-data_text_n <- data_fig6_bis %>% 
-  mutate(
-    centroid_lat = st_centroid(.) %>% 
-      st_coordinates() %>% 
-      as.data.frame() %>% 
-      pull(Y),
-    centroid_long = st_centroid(.) %>% 
-      st_coordinates() %>% 
-      as.data.frame() %>% 
-      pull(X)
-  ) %>% 
-  as.data.frame() %>% 
-  select(N_idplots, centroid_lat, centroid_long)
 
-carte_n <- ggplot()+
-  geom_sf(data = data_fig6_bis, aes(fill = N_idplots))+
-  scale_fill_gradient()+
-  labs(
-    x = "",
-    y = "",
-    fill = "N fields"
-  )+
-  geom_text(
-    data = data_text_n, 
-    inherit.aes = FALSE, 
-    aes(
-      x = centroid_long, 
-      y = centroid_lat,
-      label = N_idplots,
-      fontface = 2
-    ),
-    color = "grey"
-  )+
-  theme(
-    legend.title = element_text(
-      face = "bold"
-    )
-  )
-
-{
-  pdf(
-    file = "/media/legros/Donnees/OneDrive_linux/Articles/Modele_vol/Figures_pdf/carte_n.pdf",
-    height = 6,
-    width = 9,
-  )
-  print(carte_n)
-  dev.off()
-  }
-
-# Figure sup 2 ------------------------------------------------------------
-
-data_confmatmin <- data_min %>% 
-  mutate(pred = ifelse(proba >= best_threshold_min$threshold, as.character("Pres"), as.character("Abs"))) %>% 
-  mutate(pred = factor(pred, levels = c("Pres", "Abs")))
-
-confmatmin <- confusionMatrix(data = data_confmatmin$pred, reference = data_confmatmin$data)
-
-sink("confmatmin.txt")
-print(confmatmin)
-sink()
-
-data_confmatdep <- data_fig6 %>% 
-  bind_cols(pred = data_confmatmin$pred)
-
-ls_dep <- map(
-  .x = unique(data_confmatdep$NOM_DEPT),
-  .f = ~data_confmatdep %>% filter(NOM_DEPT == .x)
-) 
-
-ls_confmat <- map(
-  ls_dep,
-  ~confusionMatrix(.x$pred, .x$Capture)
-) %>% 
-  setNames(unique(data_confmatdep$NOM_DEPT))
-
-perf_bydep <- map_dfr(
-  ls_confmat,
-  ~.x$byClass[c("Pos Pred Value", "Neg Pred Value")] %>% 
-    as.list() %>% 
-    as_tibble()
-) %>% 
-  mutate(NOM_DEPT = names(ls_confmat)) %>% 
-  left_join(data_fig6_bis %>% select(NOM_DEPT, ratio_pres), by = "NOM_DEPT")
-
-fpr <- map_dbl(
-  ls_confmat,
-  ~.x$table[1, 2]/(.x$table[1, 2] + .x$table[2, 2])
-)
-
-fnr <- map_dbl(
-  ls_confmat,
-  ~.x$table[2, 1]/(.x$table[2, 1] + .x$table[1, 1])
-)
-
-perf_bydep <- perf_bydep %>% 
-  mutate(
-    false_negative = fnr,
-    false_positive = fpr
-  )
-
-plot(`Pos Pred Value` ~ ratio_pres, data = perf_bydep)
-points(`Neg Pred Value` ~ ratio_pres, data = perf_bydep, col = "red")
-
-# Map DOY first flight ----------------------------------------------------
+# Figure S1 ---------------------------------------------------------------
 
 data_map_doy <- data_fig6 %>% 
   bind_cols(Date_obs = bsv$Date_obs, jour = bsv$jour) %>% 
@@ -1341,47 +1130,6 @@ data_text_ff <- data_map_doy %>%
   ) %>% 
   as.data.frame()
 
-carte_ff <- ggplot()+
-  geom_sf(data = fondCarte)+
-  geom_sf(data = data_map_doy, aes(fill = median_j))+
-  scale_fill_gradient(
-    low = "palegreen",
-    high = "black",
-  )+
-  labs(
-    x = "",
-    y = "",
-    fill = "Median DOY of 1st flight"
-  )+
-  geom_text(
-    data = data_text_ff, 
-    inherit.aes = FALSE, 
-    aes(
-      x = centroid_long, 
-      y = centroid_lat,
-      label = round(median_j, 0),
-      fontface = 2,
-      size = 10
-    ),
-    color = "grey"
-  )+
-  scale_size(guide = 'none')+
-  theme(
-    legend.title = element_text(face = "bold"),
-    strip.text = element_text(size = 14)
-  )+
-  facet_wrap(~Campagne)
-
-carte_ff
-
-ggsave(
-  filename = "/home/legros/OneDrive/Articles/Modele_vol/Figures_pdf/figsup_DOY_map.pdf", 
-  plot = carte_ff,
-  height = 9*1.9,
-  width = 16*1.9,
-  units = "in"
-)
-
 facet_doy_lat <- ggplot(data_map_doy, aes(x = Latitude2, y = median_j))+
   geom_point()+
   geom_smooth(method = "lm", formula = y ~ x, colour = "blue")+
@@ -1399,16 +1147,6 @@ facet_doy_lat <- ggplot(data_map_doy, aes(x = Latitude2, y = median_j))+
     axis.title.y = element_text(margin = margin(0, 10, 0, 0), size = 14)
   )+
   facet_wrap(~Campagne)
-
-facet_doy_lat
-
-ggsave(
-  filename = "/home/legros/OneDrive/Articles/Modele_vol/Figures_pdf/figsup_DOY_lines.pdf", 
-  plot = facet_doy_lat,
-  height = 9,
-  width = 16,
-  units = "in"
-)
 
 facet_doy_lng <- ggplot(data_map_doy, aes(x = Longitude2, y = median_j))+
   geom_point()+
@@ -1428,11 +1166,7 @@ facet_doy_lng <- ggplot(data_map_doy, aes(x = Longitude2, y = median_j))+
   )+
   facet_wrap(~Campagne)
 
-facet_doy_lng
-
 both_facets <- grid.arrange(facet_doy_lat, facet_doy_lng, nrow = 1)
-
-print(both_facets)
 
 ggsave(
   filename = "/media/legros/Donnees/OneDrive_linux/Articles/Modele_vol/Review/Figures_pdf/figsup_SI1_3.pdf", 
@@ -1441,7 +1175,3 @@ ggsave(
   width = 16,
   units = "in"
 )
-
-lm_doy <- lm(median_j ~ Latitude2 + Campagne, data = data_map_doy)
-summary(lm_doy)
-plot(lm_doy)

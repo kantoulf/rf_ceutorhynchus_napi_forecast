@@ -1,6 +1,3 @@
-# Pour cette etape, j'ai essaye plusieurs solution de selection de variables.
-# voir ici : https://www.sciencedirect.com/science/article/abs/pii/S0957417419303574?via%3Dihub
-
 # Packages ----------------------------------------------------------------
 {
   library(ranger)
@@ -63,14 +60,6 @@ saveRDS(varSelRF_res, "varSelRF_res.rds")
 
 
 # Caret -------------------------------------------------------------------
-
-# C'est cette technique de selection de variables que j'ai utilisee au final. 
-# Elle est tres lourde (compter une semaine de calcul sur la machine de Jean-Eudes) et assez complexe a parametrer. 
-# Par contre c'est la seule qui permet une optimisation automatique des parametres du RF et validation croisee.
-
-# Je ne suis plus certain que ce soit exactement ce code que j'avais fait tourner, car c'etait sur la machine de Jean-Eudes.
-# ça doit y ressembler en tout cas.
-
 data_caret <- bsv %>% 
   select(-c(Id_plot:Valeur)) %>% 
   select(Campagne : sTmax_0) %>% 

@@ -16,12 +16,8 @@
 {
   bsv <- readRDS("data/export/rds/bsv_mai2022.rds")
   
-  # raster des couches de vegetation de la base de donnees "BD_TOPO" (https://geoservices.ign.fr/bdtopo)
-  # converti a partir des shapefiles telechargeables sur le site
-  # voir documentation pour details.
   veg_raster <- raster::raster("data/import/bd_topo/veg_raster.tif")
   
-  # rasters du RPG pour recup les surface de colza
   files <- list.files(path = "data/import/rpg/rasters/")
   files <- files[grepl("_raster", files)]
   files_paths <- list.files(path = "data/import/rpg/rasters/", full.names = T)
@@ -40,22 +36,7 @@
 
 # Fonctions ---------------------------------------------------------------
 {
-  # Correspondance "tokeep" fonction f_foret
-  #       Forêt fermée de feuillus = 1
-  #       Haie = 2
-  #       Peupleraie = 3
-  #       Bois = 4
-  #       Lande ligneuse = 5
-  #       Forêt fermée de conifères = 6
-  #       Forêt fermée mixte = 7
-  #       Verger = 8
-  #       Forêt ouverte = 9
-  #       Vigne = 10
-  #       Lande herbacée = 11
-  #       Houblonnière = 12
-  #       Rizière = 13
   
-  # recupere la surface de vegetation autour d'un point
   f_foret <- function(rast = veg_raster, latitude, longitude, rayon, tokeep = c(1, 3:7, 9)){
     f_filter <- function(vec){
       0.04 * vec[vec %in% tokeep] %>% length()
@@ -69,7 +50,6 @@
   }
   
   
-  # idem avec colza. Possible de recuperer les surfaces des annees precedentes avec "lag"
   f_colza <- function(annee, latitude, longitude, rayon, lag = 0){
     annee <- annee - lag
     if(isTRUE(TRUE %in% grepl(paste0("rpg", annee), files))){

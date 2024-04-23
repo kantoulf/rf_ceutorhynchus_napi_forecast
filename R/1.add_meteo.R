@@ -26,8 +26,6 @@
   
   stations <- MeteoAPI::info_stations(stations = "")
   
-  # quantiles de la vitesse moyenne du vent quotidienne sur 7 jours
-  # calcule sur l'ensemble des donnees safran de 2011 a 2022
   load("./data/import/safran/fichiers_rda/quantiles_vent.rda")
 }
 
@@ -46,8 +44,6 @@ options(future.globals.maxSize = 4258291200)
     map_dfr(dataframe, class)
   }
   
-  # Je pense qu'il y a moyen de faire beaucoup plus efficace avec un code vectorise
-  # (je l'ai fait ailleurs, mais je sais plus ou)
   f_choix_stations <- function(idplot){
     ligne <- bsv_idplot_unique %>% filter(Id_plot == idplot) 
     campagne <- ligne %>% pull(Campagne)
@@ -98,18 +94,6 @@ options(future.globals.maxSize = 4258291200)
       "sTmax_15" = mdSommeSup_vec("TMax", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, 15, 99, "%Y-%m-%d"),
       "sTmax_17" = mdSommeSup_vec("TMax", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, 17, 99, "%Y-%m-%d"),
       "sTmax_19" = mdSommeSup_vec("TMax", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, 19, 99, "%Y-%m-%d"),
-      
-      # A VOIR POUR RAJOUTER ET TESTER CES VARIABLES (certainement plus pertinentes que Tmin/moy/max, vu que seulement pendant la journee)
-      # "sTmax_1_diurne" = mdSommeSup_vec("TDiurne", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, 1, 99, "%Y-%m-%d"),
-      # "sTmax_3_diurne" = mdSommeSup_vec("TDiurne", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, 3, 99, "%Y-%m-%d"),
-      # "sTmax_5_diurne" = mdSommeSup_vec("TDiurne", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, 5, 99, "%Y-%m-%d"),
-      # "sTmax_7_diurne" = mdSommeSup_vec("TDiurne", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, 7, 99, "%Y-%m-%d"),
-      # "sTmax_9_diurne" = mdSommeSup_vec("TDiurne", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, 9, 99, "%Y-%m-%d"),
-      # "sTmax_12_diurne" = mdSommeSup_vec("TDiurne", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, 12, 99, "%Y-%m-%d"),
-      # "sTmax_15_diurne" = mdSommeSup_vec("TDiurne", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, 15, 99, "%Y-%m-%d"),
-      # "sTmax_17_diurne" = mdSommeSup_vec("TDiurne", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, 17, 99, "%Y-%m-%d"),
-      # "sTmax_19_diurne" = mdSommeSup_vec("TDiurne", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, 19, 99, "%Y-%m-%d"),
-      
       "sPluie" = mdSomme_vec("Pluie", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, "%Y-%m-%d"),
       "sInsolation" = mdSomme_vec("Insolation", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, "%Y-%m-%d"),
       "tMax" = mdExtreme_vec("TMaxi", vec_station, vec_dateobs - days(6) - lag, vec_dateobs - lag, "Maximum", "%Y-%m-%d"),
@@ -151,7 +135,6 @@ options(future.globals.maxSize = 4258291200)
       set_colnames(paste0(names(.), "_", lag))
   }
   
-  # recherche le point le plus proche de chaque Idplot dans la grille safran
   f_prepare <- function(annee, df = bsv){
     data_bsv <- df %>% 
       filter(Campagne == annee)
@@ -177,8 +160,6 @@ options(future.globals.maxSize = 4258291200)
       left_join(idplots)
   }
   
-  # pour une ligne du BSV, calcule une série d'indicateurs relatifs au vent
-  # a partir de safran sur la semaine precedent l'obsveration
   f_indicVent <- function(num_row){
     line <- data_bsv %>% 
       slice(num_row)
@@ -207,7 +188,6 @@ options(future.globals.maxSize = 4258291200)
     return(data2return)
   }
   
-  # aggrege les deux fonctions precedentes pour faciliter les calculs et le code
   f_vent <- function(annee){
     load(paste0("data/import/safran/safran_dt_", annee, ".rda"), envir = .GlobalEnv)
     data_bsv <<- f_prepare(annee)
@@ -278,8 +258,6 @@ bsv <- map_dfr(unique(bsv$Campagne), f_vent)
 saveRDS(bsv, "data/export/rds/bsv_mai2022.rds")
 
 # Creation BSV etendu -----------------------------------------------------
-
-# BSV etendu = BSV complete pour chaque jour de l'annee (meteo) => utile pour cibler le premier jour de vol predit par le modele.
 
 bsv_etendu <- bsv %>% 
   select(c(1:10, contains("sforet"), contains("scolza"))) %>% 

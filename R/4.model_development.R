@@ -51,8 +51,6 @@ source(file = "R/Fonctions.R")
 
 # RF full dataset ---------------------------------------------------------
 
-# l'idee ici est de faire un RF "naif" avec toutes les donnees et voir les perfs obtenues.
-
 ROC_test <- f_vc_ROC(data_ranger)
 
 saveRDS(ROC_test, "data/export/rds/ROC_test.rds")
@@ -61,14 +59,12 @@ data_roc_full <- ROC_test[[1]]
 models_full <- ROC_test[[3]]
 names(models_full) <- 2011:2020
 
-# AUC par annee de 2011 à 2022
 map_dbl(
   .x = unique(data_ranger$Campagne), 
   donnees = ROC_test[[1]], 
   .f = f_roc
 )
 
-# ROC sur l'ensemble des predictions
 ROC_all <- roc(
   response = data_roc_full$data, 
   predictor = data_roc_full$proba,
@@ -83,7 +79,6 @@ best_seuil <- coords(
 ) %>% 
   pull(threshold)
 
-# matrice de confusion
 df_matrice <- data_roc_full %>% 
   mutate(
     pred = ifelse(proba >= best_seuil, "Pres", "Abs"),
@@ -95,15 +90,6 @@ confmat_full <- confusionMatrix(
   reference = df_matrice$data,
   positive = "Pres"
 )
-
-# broom::tidy(confmat_full) %>% 
-#   list(as.data.frame(confmat_full$table)) %>% 
-#   writexl::write_xlsx("data/export/article_ocl/confmat_full.xlsx")
-
-# mesure de l'importance des variables
-
-# l'idee ici est de repliquer plusieurs RF pour s'affranchir de la variation 
-# inherente aux RF dans l'estimation de l'importance des variables
 
 rf_replicate <- replicate(
   20, 
@@ -138,9 +124,6 @@ df_imp_full %>%
 
 # RF filtered caret -------------------------------------------------------
 
-# meme operation que dans le paragrpahe precedent, mais avec seulement les 
-# variables retenues par caret dans le script "3.Selection_variables.R"
-
 var_imp <- rfe$variables %>% 
   group_by(var) %>% 
   summarise(importance = mean(Overall)) %>% 
@@ -160,7 +143,6 @@ map(
   .f = f_roc
 )
 
-# j'aurais pu faire des fonctions pour toutes ces etapes que je repete plusieurs fois...
 rf_replicate_caret <- replicate(
   20, 
   ranger(
@@ -191,7 +173,6 @@ df_imp_caret %>%
   geom_col(aes(x = reorder(variable, -valeur), y = valeur)) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
-# On filtre les variables selon leur importance et leur correlations
 tokeep <- f_filter_var(data_ranger_caret, df_imp_caret, 0.75)
 
 data_ranger_minimal <- data_ranger_caret %>% 
@@ -201,10 +182,6 @@ saveRDS(data_ranger_minimal, "data/export/rds/data_ranger_minimal.RDS")
 
 
 # RF filtered caret + correlations ----------------------------------------
-
-# A ce stade, on a cree un jeu de donnes avec uniquement des variables importantes 
-# et faiblement correlees entre elles.
-# On peut generer un dernier modele "minimal" qui ne comprend que ces variables.
 
 ROC_minimal <- f_vc_ROC(dataset = data_ranger_minimal)
 saveRDS(ROC_minimal, "data/export/rds/ROC_minimal.rds")
@@ -244,7 +221,6 @@ df_imp_min <- tibble(
 ) %>% 
   arrange(desc(valeur)) 
 
-# ranger final utilisable pour predictions futures
 rf_min <- ranger(
   Capture ~ ., 
   data = data_ranger_minimal %>% select(-Campagne), 
@@ -260,14 +236,11 @@ f_plotImp(rf_min)
 
 seuil_minimal <- f_best_threshold(ROC_minimal) %>% pull(threshold)
 
-# ALEPLOTS. Idem Partial Dependant Plot mais prend mieux en compte le probleme des 
-# variables correlees. Voir ici : https://christophm.github.io/interpretable-ml-book/ale.html
 predictor_test <- Predictor$new(
   model = rf_min,
   data = data_ranger_minimal %>% select(-Campagne),
   predict.function = f_yhat,
   y = "Capture",
-  # class = "Pres",
   type = "prob",
 )
 
@@ -286,11 +259,6 @@ FeatureEffects$new(
 
 
 # RF pour shiny ---------------------------------------------------------
-
-# meme modele, mais avec latitude/longitude/jour conserves.
-# Ces variables avaient etes ecartees lors de la phase de selection.
-# Malgre tout, elles ne sont pas de nature meteorologiques comme les autres.
-# Elles pourraient quand meme permettre de preciser les predictions dans certains cas.
 
 data_shiny <- read_csv("data/import/data_shiny.csv") %>% 
   mutate(Capture = factor(Capture, levels = c("Pres", "Abs")))
